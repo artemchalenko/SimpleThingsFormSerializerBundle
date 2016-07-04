@@ -17,6 +17,6 @@ use Symfony\Component\Form\FormInterface;
 
 interface NamingStrategy
 {
-    function translateName(FormInterface $form);
+    public function translateName(FormInterface $form);
 }
 

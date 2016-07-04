@@ -25,20 +25,42 @@ use SimpleThings\FormSerializerBundle\Serializer\SerializerOptions;
 
 class SerializerTypeExtension extends AbstractTypeExtension
 {
+    /**
+     * @var DecoderInterface
+     */
     private $encoderRegistry;
+
+    /**
+     * @var SerializerOptions
+     */
     private $options;
 
+    /**
+     * SerializerTypeExtension constructor.
+     *
+     * @param DecoderInterface       $encoderRegistry
+     * @param SerializerOptions|null $options
+     */
     public function __construct(DecoderInterface $encoderRegistry, SerializerOptions $options = null)
     {
         $this->encoderRegistry = $encoderRegistry;
         $this->options         = $options ?: new SerializerOptions();
     }
 
+    /**
+     * @param FormBuilderInterface $builder
+     * @param array                $options
+     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder->addEventSubscriber(new BindRequestListener($this->encoderRegistry, $this->options));
     }
 
+    /**
+     * @param FormView      $view
+     * @param FormInterface $form
+     * @param array         $options
+     */
     public function finishView(FormView $view, FormInterface $form, array $options)
     {
         foreach ($form->all() as $identifier => $child) {
@@ -50,6 +72,9 @@ class SerializerTypeExtension extends AbstractTypeExtension
         }
     }
 
+    /**
+     * @param OptionsResolverInterface $resolver
+     */
     public function setDefaultOptions(OptionsResolverInterface $resolver)
     {
         $resolver->setDefaults(array(
@@ -62,6 +87,9 @@ class SerializerTypeExtension extends AbstractTypeExtension
         ));
     }
 
+    /**
+     * @return string
+     */
     public function getExtendedType()
     {
         return 'form';

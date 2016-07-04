@@ -18,30 +18,56 @@ use SimpleThings\FormSerializerBundle\Serializer\NamingStrategy\NamingStrategy;
 
 class SerializerOptions
 {
+    /**
+     * @var bool
+     */
     private $includeRootInJson = false;
+
+    /**
+     * @var string
+     */
     private $applicationXmlRootName;
+
+    /**
+     * @var NamingStrategy
+     */
     private $namingStrategy;
 
+    /**
+     * @return bool
+     */
     public function getIncludeRootInJson()
     {
         return $this->includeRootInJson;
     }
 
+    /**
+     * @param boolean $includeRootInJson
+     */
     public function setIncludeRootInJson($includeRootInJson)
     {
         $this->includeRootInJson = $includeRootInJson;
     }
 
+    /**
+     * @return string
+     */
     public function getApplicationXmlRootName()
     {
         return $this->applicationXmlRootName;
     }
 
+    /**
+     * @param $applicationXmlRootName
+     */
     public function setApplicationXmlRootName($applicationXmlRootName)
     {
         $this->applicationXmlRootName = $applicationXmlRootName;
     }
 
+    /**
+     * @return CamelCaseStrategy|NamingStrategy
+     */
     public function getNamingStrategy()
     {
         if ($this->namingStrategy === null) {
@@ -50,6 +76,9 @@ class SerializerOptions
         return $this->namingStrategy;
     }
 
+    /**
+     * @param NamingStrategy $namingStrategy
+     */
     public function setNamingStrategy(NamingStrategy $namingStrategy)
     {
         $this->namingStrategy = $namingStrategy;

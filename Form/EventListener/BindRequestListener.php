@@ -16,29 +16,52 @@ namespace SimpleThings\FormSerializerBundle\Form\EventListener;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Encoder\DecoderInterface;
 
 use SimpleThings\FormSerializerBundle\Serializer\EncoderRegistry;
 use SimpleThings\FormSerializerBundle\Serializer\SerializerOptions;
+use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 class BindRequestListener implements EventSubscriberInterface
 {
+    /**
+     * @var DecoderInterface
+     */
     private $decoder;
+
+    /**
+     * @var SerializerOptions
+     */
     private $options;
 
+    /**
+     * BindRequestListener constructor.
+     *
+     * @param DecoderInterface       $decoder
+     * @param SerializerOptions|null $options
+     */
     public function __construct(DecoderInterface $decoder, SerializerOptions $options = null)
     {
         $this->decoder = $decoder;
         $this->options = $options ?: new SerializerOptions();
     }
 
+    /**
+     * @return array
+     */
     public static function getSubscribedEvents()
     {
         // High priority in order to supersede other listeners
-        return array(FormEvents::PRE_BIND => array('preBind', 129));
+        return array(FormEvents::PRE_SUBMIT => array('preBind', 129));
     }
 
+    /**
+     * @param FormEvent $event
+     *
+     * @throws UnexpectedValueException
+     */
     public function preBind(FormEvent $event)
     {
         $form    = $event->getForm();
@@ -59,22 +82,30 @@ class BindRequestListener implements EventSubscriberInterface
         $xmlName = !empty($options['serialize_xml_name']) ? $options['serialize_xml_name'] : 'entry';
         $data    = $this->decoder->decode($content, $format);
 
-        if ( ($format === "json" && $this->options->getIncludeRootInJson()) ||
-             ($format === "xml" && $this->options->getApplicationXmlRootName() && $this->options->getApplicationXmlRootName() !== $xmlName)) {
+        if ( ($format === 'json' && $this->options->getIncludeRootInJson()) ||
+             ($format === 'xml' && $this->options->getApplicationXmlRootName() && $this->options->getApplicationXmlRootName() !== $xmlName)) {
             $data = isset($data[$xmlName]) ? $data[$xmlName] : array();
         }
 
-        $event->setData($this->unserializeForm($data, $form, $format == "xml", $request->getMethod() == "PATCH"));
+        $event->setData($this->unserializeForm($data, $form, $format === 'xml', $request->getMethod() === 'PATCH'));
     }
 
+    /**
+     * @param array         $data
+     * @param FormInterface $form
+     * @param boolean       $isXml
+     * @param boolean       $isPatch
+     *
+     * @return array
+     */
     private function unserializeForm($data, $form, $isXml, $isPatch)
     {
         if ($form->getConfig()->hasAttribute('serialize_collection_form')) {
-            $form   = $form->getConfig()->getAttribute('serialize_collection_form');
-            $result = array();
+            $form = $form->getConfig()->getAttribute('serialize_collection_form');
+            $result = [];
 
             if (!isset($data[0])) {
-                $data = array($data); // XML special case
+                $data = [$data]; // XML special case
             }
 
             foreach ($data as $key => $child) {
@@ -82,11 +113,12 @@ class BindRequestListener implements EventSubscriberInterface
             }
 
             return $result;
-        } else if ( ! $form->all()) {
+        }
+        if (!$form->all()) {
             return $data;
         }
 
-        $result = array();
+        $result = [];
         $namingStrategy = $this->options->getNamingStrategy();
 
         foreach ($form->all() as $child) {
@@ -113,7 +145,9 @@ class BindRequestListener implements EventSubscriberInterface
 
             // If we are PATCHing then don't fill in missing attributes with null
             $childValue = $this->unserializeForm($value, $child, $isXml, $isPatch);
-            if (!($isPatch && !$childValue)) $result[$child->getName()] = $childValue;
+            if (!($isPatch && !$childValue)) {
+                $result[$child->getName()] = $childValue;
+            }
         }
 
         return $result;

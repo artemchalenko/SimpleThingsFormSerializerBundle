@@ -20,15 +20,22 @@ use Metadata\MetadataFactoryInterface;
  */
 class JMSSerializerConverter
 {
+    /**
+     * @var MetadataFactoryInterface
+     */
     private $metadataFactory;
-    private $typeMap = array(
-        'string'   => 'text',
-        'boolean'  => 'checkbox',
-        'integer'  => 'integer',
-        'double'   => 'number',
+
+    /**
+     * @var array
+     */
+    private $typeMap = [
+        'string' => 'text',
+        'boolean' => 'checkbox',
+        'integer' => 'integer',
+        'double' => 'number',
         'DateTime' => 'datetime',
         'datetime' => 'datetime',
-    );
+    ];
 
     static private $template = <<<'PHP'
 <?php
@@ -63,17 +70,30 @@ class {{class}}Type extends AbstractType
 
 PHP;
 
+    /**
+     * JMSSerializerConverter constructor.
+     *
+     * @param MetadataFactoryInterface $factory
+     */
     public function __construct(MetadataFactoryInterface $factory)
     {
         $this->metadataFactory = $factory;
     }
 
+    /**
+     * @param string $type
+     * @param bool   $recursive
+     *
+     * @return string
+     */
     private function getType($type, $recursive = false)
     {
         if (isset($this->typeMap[$type])) {
             return $this->typeMap[$type];
-        } else if (strpos($type, "array<") === 0) {
-            if ( ! $recursive) {
+        }
+
+        if (strpos($type, 'array<') === 0) {
+            if (!$recursive) {
                 return 'collection';
             }
 
@@ -81,44 +101,50 @@ PHP;
                 $listType = substr($type, 6, -1);
             } else {
                 $keyType = trim(substr($type, 6, $pos - 6));
-                $listType = trim(substr($type, $pos+1, -1));
+                $listType = trim(substr($type, $pos + 1, -1));
             }
 
             return $this->getType($listType);
-        } else if (class_exists($type)) {
-
+        }
+        if (class_exists($type)) {
             $parts = explode("\\", $type);
-            return "new " . end($parts) . "Type()";
+
+            return 'new '.end($parts).'Type()';
         }
 
-        return "text";
+        return 'text';
     }
 
+    /**
+     * @param string $className
+     *
+     * @return mixed|string
+     */
     public function generateFormPhpCode($className)
     {
         $metadata = $this->metadataFactory->getMetadataForClass($className);
-        $lines = array();
+        $lines = [];
 
-        $defaults = array(
-            "'data_class' => '" . $metadata->name . "'"
-        );
+        $defaults = [
+            "'data_class' => '".$metadata->name."'",
+        ];
         if ($metadata->xmlRootName) {
-            $efaults[] = "'serialize_xml_name' => '" . $metadata->xmlRootName . "'";
+            $efaults[] = "'serialize_xml_name' => '".$metadata->xmlRootName."'";
         }
 
-        $builder = array();
+        $builder = [];
         foreach ($metadata->propertyMetadata as $property) {
-            $options = array();
-            $type    = $this->getType($property->type);
+            $options = [];
+            $type = $this->getType($property->type);
 
             if ($property->xmlCollection || $type === 'collection') {
-                $options[] = "'type' => " . $this->getType($property->type, true);
-                if ( ! $property->xmlCollectionInline) {
+                $options[] = "'entry_type' => ".$this->getType($property->type, true);
+                if (!$property->xmlCollectionInline) {
                     $options[] = "'serialize_xml_inline' => false";
                 }
 
                 if ($property->xmlEntryName) {
-                    $options[] = "'serialize_xml_name' => '" . $property->xmlEntryName . "'";
+                    $options[] = "'serialize_xml_name' => '".$property->xmlEntryName."'";
                 }
             }
 
@@ -134,25 +160,25 @@ PHP;
                 $options[] = "'disabled' => true";
             }
 
-            $options = $options ? ", array(" . implode(", ", $options) . ")" : "";
+            $options = $options ? ', array('.implode(", ", $options).')' : '';
 
-            $type = (strpos($type, " ") === false) ? "'" . $type . "'" : $type;
+            $type = (strpos($type, ' ') === false) ? "'".$type."'" : $type;
 
-            $builder[] = "->add('" . $property->name . "', " . $type .  $options . ")";
+            $builder[] = "->add('".$property->name."', ".$type.$options.')';
         }
 
         // TODO: Replace
-        $variables = array(
-            'name'      => strtolower($metadata->reflection->getShortName()),
-            'class'     => $metadata->reflection->getShortName(),
-            'namespace' => str_replace(array("Entity", "Document"), "Form", $metadata->reflection->getNamespaceName()),
-            'build'     => implode("\n            ", $builder),
-            'defaults'  => implode("\n", $defaults),
-        );
+        $variables = [
+            'name' => strtolower($metadata->reflection->getShortName()),
+            'class' => $metadata->reflection->getShortName(),
+            'namespace' => str_replace(['Entity', 'Document'], 'Form', $metadata->reflection->getNamespaceName()),
+            'build' => implode("\n            ", $builder),
+            'defaults' => implode("\n", $defaults),
+        ];
 
         $code = self::$template;
         foreach ($variables as $placeholder => $variable) {
-            $code = str_replace("{{".$placeholder."}}", $variable, $code);
+            $code = str_replace('{{'.$placeholder.'}}', $variable, $code);
         }
 
         return $code;

@@ -19,15 +19,22 @@ use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 class CollectionTypeExtension extends AbstractTypeExtension
 {
+    /**
+     * @param FormBuilderInterface $builder
+     * @param array                $options
+     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         // todo optimize (away)
         $builder->setAttribute(
             'serialize_collection_form',
-            $builder->getFormFactory()->create($options['type'])
+            $builder->getFormFactory()->create($options['entry_type'])
         );
     }
 
+    /**
+     * @return string
+     */
     public function getExtendedType()
     {
         return 'collection';

@@ -13,29 +13,72 @@
 
 namespace SimpleThings\FormSerializerBundle\Serializer;
 
+use Doctrine\Common\Inflector\Inflector;
+use Nelmio\ApiDocBundle\Tests\Fixtures\Form\CollectionType;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormTypeInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\OptionsResolver\Exception\AccessException;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
+use Symfony\Component\OptionsResolver\Exception\MissingOptionsException;
+use Symfony\Component\OptionsResolver\Exception\NoSuchOptionException;
+use Symfony\Component\OptionsResolver\Exception\OptionDefinitionException;
+use Symfony\Component\OptionsResolver\Exception\UndefinedOptionsException;
 use Symfony\Component\Serializer\Encoder\EncoderInterface;
 use Symfony\Component\Form\Exception\UnexpectedTypeException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 class FormSerializer implements FormSerializerInterface
 {
+    /**
+     * @var FormFactoryInterface
+     */
     private $factory;
+
+    /**
+     * @var EncoderInterface
+     */
     private $encoder;
+
+    /**
+     * @var SerializerOptions
+     */
     private $options;
 
-    public function __construct(FormFactoryInterface $factory, EncoderInterface $encoder, SerializerOptions $options = null)
-    {
+    /**
+     * FormSerializer constructor.
+     *
+     * @param FormFactoryInterface   $factory
+     * @param EncoderInterface       $encoder
+     * @param SerializerOptions|null $options
+     */
+    public function __construct(
+        FormFactoryInterface $factory,
+        EncoderInterface $encoder,
+        SerializerOptions $options = null
+    ) {
         $this->factory = $factory;
         $this->encoder = $encoder;
         $this->options = $options ?: new SerializerOptions;
     }
 
     /**
-     * {@inheritdoc}
+     * @param array|\Traversable $list
+     * @param FormTypeInterface  $type
+     * @param string             $format
+     * @param string             $xmlRootName
+     *
+     * @return string
+     * @throws UndefinedOptionsException
+     * @throws OptionDefinitionException
+     * @throws NoSuchOptionException
+     * @throws MissingOptionsException
+     * @throws InvalidOptionsException
+     * @throws AccessException
+     * @throws UnexpectedTypeException
      */
     public function serializeList($list, $type, $format, $xmlRootName = 'entries')
     {
@@ -45,41 +88,58 @@ class FormSerializer implements FormSerializerInterface
 
         $resolver = new OptionsResolver();
         $type->setDefaultOptions($resolver);
-        $typeOptions = $resolver->resolve(array());
+        $typeOptions = $resolver->resolve([]);
 
-        $options = array();
-        $options['type'] = $type;
+        $options = [];
+        $options['entry_type'] = $type;
         $options['serialize_xml_inline'] = true;
 
-        $formOptions = array();
+        $formOptions = [];
         $formOptions['serialize_xml_name'] = $xmlRootName;
 
-        $name = isset($typeOptions['serialize_xml_name']) ? $typeOptions['serialize_xml_name'] : $type->getName();
-        $list = array($name => $list);
+        $reflection = new \ReflectionClass($type);
+        $name = isset($typeOptions['serialize_xml_name'])
+            ? $typeOptions['serialize_xml_name']
+            : Inflector::tableize($reflection->getShortName());
+        $list = [$name => $list];
 
-        $builder = $this->factory->createBuilder('form', $list, $formOptions);
-        $builder->add($name, 'collection', $options);
+        $builder = $this->factory->createBuilder(FormType::class, $list, $formOptions);
+        $builder->add($name, CollectionType::class, $options);
 
         return $this->serialize($list, $builder, $format);
     }
 
     /**
-     * {@inheritdoc}
+     * @param mixed                                                $object
+     * @param FormBuilderInterface|FormInterface|FormTypeInterface $typeBuilder
+     * @param string                                               $format
+     *
+     * @return string
+     * @throws UnexpectedValueException
+     * @throws InvalidOptionsException
+     * @throws UnexpectedTypeException
      */
     public function serialize($object, $typeBuilder, $format)
     {
         if (($typeBuilder instanceof FormTypeInterface) || is_string($typeBuilder)) {
             $form = $this->factory->create($typeBuilder, $object);
-        } else if ($typeBuilder instanceof FormBuilderInterface) {
-            $typeBuilder->setData($object);
-            $form = $typeBuilder->getForm();
-        } else if ($typeBuilder instanceof FormInterface) {
-            $form = $typeBuilder;
-            if ( ! $form->isBound()) {
-                $form->setData($object);
-            }
         } else {
-            throw new UnexpectedTypeException($typeBuilder, 'FormInterface|FormTypeInterface|FormBuilderInterface');
+            if ($typeBuilder instanceof FormBuilderInterface) {
+                $typeBuilder->setData($object);
+                $form = $typeBuilder->getForm();
+            } else {
+                if ($typeBuilder instanceof FormInterface) {
+                    $form = $typeBuilder;
+                    if (!$form->isSubmitted()) {
+                        $form->setData($object);
+                    }
+                } else {
+                    throw new UnexpectedTypeException(
+                        $typeBuilder,
+                        'FormInterface|FormTypeInterface|FormBuilderInterface'
+                    );
+                }
+            }
         }
 
         $options = $form->getConfig()->getOptions();
@@ -87,22 +147,22 @@ class FormSerializer implements FormSerializerInterface
             ? $options['serialize_xml_name']
             : 'entry';
 
-        if ($form->isBound() && ! $form->isValid()) {
-            $data    = $this->serializeFormError($form);
+        if ($form->isSubmitted() && !$form->isValid()) {
+            $data = $this->serializeFormError($form);
             $xmlName = 'form';
         } else {
-            $data = $this->serializeForm($form, $format == 'xml');
+            $data = $this->serializeForm($form, $format === 'xml');
         }
 
         if ($format === 'json' && $this->options->getIncludeRootInJson()) {
-            $data = array($xmlName => $data);
+            $data = [$xmlName => $data];
         }
 
         if ($format === 'xml') {
             $appXmlName = $this->options->getApplicationXmlRootName();
 
             if ($appXmlName && $appXmlName !== $xmlName) {
-                $data    = array($xmlName => $data);
+                $data = [$xmlName => $data];
                 $xmlName = $appXmlName;
             }
 
@@ -112,9 +172,14 @@ class FormSerializer implements FormSerializerInterface
         return $this->encoder->encode($data, $format);
     }
 
+    /**
+     * @param FormInterface $form
+     *
+     * @return array
+     */
     private function serializeFormError(FormInterface $form)
     {
-        $result = array();
+        $result = [];
 
         foreach ($form->getErrors() as $error) {
             $result['error'][] = $error->getMessage();
@@ -131,26 +196,32 @@ class FormSerializer implements FormSerializerInterface
         return $result;
     }
 
+    /**
+     * @param FormInterface $form
+     * @param boolean       $isXml
+     *
+     * @return array|mixed
+     */
     private function serializeForm(FormInterface $form, $isXml)
     {
-        if ( ! $form->all()) {
+        if (!$form->all()) {
             return $form->getViewData();
         }
 
-        $data = array();
+        $data = [];
         $namingStrategy = $this->options->getNamingStrategy();
 
         foreach ($form->all() as $child) {
             $options = $child->getConfig()->getOptions();
-            $name    = $options['serialize_name'] ?: $namingStrategy->translateName($child);
+            $name = $options['serialize_name'] ?: $namingStrategy->translateName($child);
 
             if ($isXml) {
                 $name = (!$options['serialize_xml_value'])
-                    ? ($options['serialize_xml_attribute'] ? '@' . $name : $name)
+                    ? ($options['serialize_xml_attribute'] ? '@'.$name : $name)
                     : '#';
             }
 
-            if ( ! $options['serialize_xml_inline'] && $isXml) {
+            if (!$options['serialize_xml_inline'] && $isXml) {
                 $data[$name][$options['serialize_xml_name']] = $this->serializeForm($child, $isXml);
             } else {
                 $data[$name] = $this->serializeForm($child, $isXml);
