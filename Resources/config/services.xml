@@ -39,13 +39,13 @@
             class="SimpleThings\FormSerializerBundle\Serializer\NamingStrategy\CamelCaseStrategy" />
 
         <service id="simple_things_form_serializer.form.extension.collection_type" class="SimpleThings\FormSerializerBundle\Form\Extension\CollectionTypeExtension">
-            <tag name="form.type_extension" alias="collection" />
+            <tag name="form.type_extension" extended-type="Symfony\Component\Form\Extension\Core\Type\CollectionType" />
         </service>
 
         <service id="simple_things_form_serializer.form.extension.serializer_type" class="SimpleThings\FormSerializerBundle\Form\Extension\SerializerTypeExtension">
             <argument type="service" id="simple_things_form_serializer.serializer.encoder_registry" />
             <argument type="service" id="simple_things_form_serializer.serializer.options" />
-            <tag name="form.type_extension" alias="form" />
+            <tag name="form.type_extension" extended-type="Symfony\Component\Form\Extension\Core\Type\FormType" />
         </service>
     </services>
 </container>
