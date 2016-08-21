@@ -14,10 +14,12 @@
 namespace SimpleThings\FormSerializerBundle\Form\Extension;
 
 use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\Exception\AccessException;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Serializer\Encoder\DecoderInterface;
 
 use SimpleThings\FormSerializerBundle\Form\EventListener\BindRequestListener;
@@ -44,7 +46,7 @@ class SerializerTypeExtension extends AbstractTypeExtension
     public function __construct(DecoderInterface $encoderRegistry, SerializerOptions $options = null)
     {
         $this->encoderRegistry = $encoderRegistry;
-        $this->options         = $options ?: new SerializerOptions();
+        $this->options = $options ?: new SerializerOptions();
     }
 
     /**
@@ -73,18 +75,22 @@ class SerializerTypeExtension extends AbstractTypeExtension
     }
 
     /**
-     * @param OptionsResolverInterface $resolver
+     * @param OptionsResolver $resolver
+     *
+     * @throws AccessException
      */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults(array(
-            'serialize_name'          => false,
-            'serialize_xml_name'      => 'entry',
-            'serialize_xml_value'     => false,
-            'serialize_xml_attribute' => false,
-            'serialize_xml_inline'    => true,
-            'serialize_only'          => false,
-        ));
+        $resolver->setDefaults(
+            [
+                'serialize_name' => false,
+                'serialize_xml_name' => 'entry',
+                'serialize_xml_value' => false,
+                'serialize_xml_attribute' => false,
+                'serialize_xml_inline' => true,
+                'serialize_only' => false,
+            ]
+        );
     }
 
     /**
@@ -92,7 +98,7 @@ class SerializerTypeExtension extends AbstractTypeExtension
      */
     public function getExtendedType()
     {
-        return 'form';
+        return FormType::class;
     }
 }
 

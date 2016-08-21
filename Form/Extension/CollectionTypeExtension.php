@@ -14,7 +14,9 @@
 namespace SimpleThings\FormSerializerBundle\Form\Extension;
 
 use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 class CollectionTypeExtension extends AbstractTypeExtension
@@ -22,6 +24,8 @@ class CollectionTypeExtension extends AbstractTypeExtension
     /**
      * @param FormBuilderInterface $builder
      * @param array                $options
+     *
+     * @throws InvalidOptionsException
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
@@ -37,7 +41,7 @@ class CollectionTypeExtension extends AbstractTypeExtension
      */
     public function getExtendedType()
     {
-        return 'collection';
+        return CollectionType::class;
     }
 }
 

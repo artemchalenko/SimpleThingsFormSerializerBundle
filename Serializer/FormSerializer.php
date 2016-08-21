@@ -87,7 +87,7 @@ class FormSerializer implements FormSerializerInterface
         }
 
         $resolver = new OptionsResolver();
-        $type->setDefaultOptions($resolver);
+        $type->configureOptions($resolver);
         $typeOptions = $resolver->resolve([]);
 
         $options = [];

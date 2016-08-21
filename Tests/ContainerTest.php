@@ -1,24 +1,15 @@
 <?php
 namespace SimpleThings\FormSerializerBundle\Tests;
 
+use SimpleThings\FormSerializerBundle\Serializer\FormSerializer;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\Compiler\ResolveDefinitionTemplatesPass;
-
-use Symfony\Component\Form\Extension\Core\CoreExtension;
-use Symfony\Component\Form\FormFactory;
-use Symfony\Component\Form\FormRegistry;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-
-use Symfony\Component\Serializer\Encoder\XmlEncoder;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
-
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use SimpleThings\FormSerializerBundle\DependencyInjection\SimpleThingsFormSerializerExtension;
-use SimpleThings\FormSerializerBundle\Serializer\EncoderRegistry;
-use SimpleThings\FormSerializerBundle\Form\SerializerExtension;
 use SimpleThings\FormSerializerBundle\DependencyInjection\CompilerPass\EncoderPass;
 
 class ContainerTest extends TestCase
@@ -27,24 +18,30 @@ class ContainerTest extends TestCase
     {
         $factory = $this->createFormFactory();
 
-        $container = new ContainerBuilder(new ParameterBag(array(
-            'kernel.debug'       => false,
-            'kernel.bundles'     => array(),
-            'kernel.cache_dir'   => sys_get_temp_dir(),
-            'kernel.environment' => 'test',
-            'kernel.root_dir'    => __DIR__.'/../../../../' // src dir
-        )));
+        $container = new ContainerBuilder(
+            new ParameterBag(
+                [
+                    'kernel.debug' => false,
+                    'kernel.bundles' => [],
+                    'kernel.cache_dir' => sys_get_temp_dir(),
+                    'kernel.environment' => 'test',
+                    'kernel.root_dir' => __DIR__.'/../../../../' // src dir
+                ]
+            )
+        );
         $loader = new SimpleThingsFormSerializerExtension();
         $container->registerExtension($loader);
         $container->set('form.factory', $factory);
-        $loader->load(array(array()), $container);
+        $loader->load([[]], $container);
 
-        $container->getCompilerPassConfig()->setOptimizationPasses(array(new ResolveDefinitionTemplatesPass(), new EncoderPass()));
-        $container->getCompilerPassConfig()->setRemovingPasses(array());
+        $container->getCompilerPassConfig()->setOptimizationPasses(
+            [new ResolveDefinitionTemplatesPass(), new EncoderPass()]
+        );
+        $container->getCompilerPassConfig()->setRemovingPasses([]);
         $container->compile();
 
-        $this->assertInstanceOf('SimpleThings\FormSerializerBundle\Serializer\FormSerializer', $container->get('simple_things_form_serializer.form_serializer'));
-        $this->assertInstanceOf('SimpleThings\FormSerializerBundle\Serializer\FormSerializer', $serializer = $container->get('form_serializer'));
+        self::assertInstanceOf(FormSerializer::class, $container->get('simple_things_form_serializer.form_serializer'));
+        self::assertInstanceOf(FormSerializer::class, $serializer = $container->get('form_serializer'));
 
         return $serializer;
     }
@@ -59,7 +56,7 @@ class ContainerTest extends TestCase
 
         $data = $serializer->serialize($comment, new CommentType(), "xml");
 
-        $this->assertEquals("<?xml version=\"1.0\"?>\n<user><message>Test</message></user>\n", $data);
+        self::assertEquals("<?xml version=\"1.0\"?>\n<user><message>Test</message></user>\n", $data);
     }
 }
 
@@ -72,20 +69,20 @@ class CommentType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $builder
-            ->add('message', 'text')
-        ;
+        $builder->add('message', TextType::class);
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults(array(
-            'data_class' => __NAMESPACE__ . '\\Comment',
-            'serialize_xml_name'  => 'user',
-        ));
+        $resolver->setDefaults(
+            [
+                'data_class' => __NAMESPACE__.'\\Comment',
+                'serialize_xml_name' => 'user',
+            ]
+        );
     }
 
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'comment';
     }

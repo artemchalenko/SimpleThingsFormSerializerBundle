@@ -1,29 +1,31 @@
 <?php
 namespace SimpleThings\FormSerializerBundle\Tests\Serializer\Fixture;
 
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class AddressType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
-            ->add('street', 'text', array('serialize_xml_attribute' => true))
-            ->add('zipCode', 'text', array('serialize_xml_attribute' => true))
-            ->add('city', 'text', array('serialize_xml_attribute' => true))
-        ;
+            ->add('street', TextType::class, ['serialize_xml_attribute' => true])
+            ->add('zipCode', TextType::class, ['serialize_xml_attribute' => true])
+            ->add('city', TextType::class, ['serialize_xml_attribute' => true]);
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults(array(
-            'data_class' => __NAMESPACE__ . '\\Address',
-        ));
+        $resolver->setDefaults(
+            [
+                'data_class' => __NAMESPACE__.'\\Address',
+            ]
+        );
     }
 
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'address';
     }

@@ -27,7 +27,7 @@ namespace SimpleThings\FormSerializerBundle\Tests\Serializer;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class ObjectType extends AbstractType
 {
@@ -39,7 +39,7 @@ class ObjectType extends AbstractType
         ;
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults(array(
             'data_class' => 'SimpleThings\FormSerializerBundle\Tests\Serializer\Object'
@@ -67,7 +67,7 @@ namespace SimpleThings\FormSerializerBundle\Tests\Serializer;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class FooType extends AbstractType
 {
@@ -80,7 +80,7 @@ class FooType extends AbstractType
         ;
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults(array(
             'data_class' => 'SimpleThings\FormSerializerBundle\Tests\Serializer\Foo'
@@ -108,7 +108,7 @@ namespace SimpleThings\FormSerializerBundle\Tests\Serializer;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class BarType extends AbstractType
 {
@@ -119,7 +119,7 @@ class BarType extends AbstractType
         ;
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
+    public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults(array(
             'data_class' => 'SimpleThings\FormSerializerBundle\Tests\Serializer\Bar'

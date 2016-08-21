@@ -116,7 +116,7 @@ namespace Acme\DemoBundle\Form\Type;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class UserType extends AbstractType
 {
@@ -136,7 +136,7 @@ class UserType extends AbstractType
         return 'user';
     }
 
-    public function setDefaultOptions(OptionsResolverInterface $options)
+    public function configureOptions(OptionsResolver $options)
     {
         $options->setDefaults(array(
             'data_class' => 'Acme\DemoBundle\Entity\User',
