@@ -1,12 +1,12 @@
 {
-    "name": "artemchalenko/form-serializer-bundle",
+    "name": "simplethings/form-serializer-bundle",
     "type": "symfony-bundle",
     "description": "(De-)Serialization of Object-Graphs into XML/JSON based on Form Types",
     "license": "MIT",
     "authors": [
         {"name": "Benjamin Eberlei", "email": "kontakt@beberlei.de"}
     ],
-    "minimum-stability" : "stable",
+    "minimum-stability" : "beta",
     "require": {
         "php": ">=5.3.0",
         "symfony/symfony": "~3.0",
