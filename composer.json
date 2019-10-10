@@ -1,5 +1,5 @@
 {
-    "name": "simplethings/form-serializer-bundle",
+    "name": "artemchalenko/form-serializer-bundle",
     "type": "symfony-bundle",
     "description": "(De-)Serialization of Object-Graphs into XML/JSON based on Form Types",
     "license": "MIT",
